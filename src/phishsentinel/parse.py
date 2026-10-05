@@ -80,26 +80,32 @@ def to_row(msg, rid, source, label):
         "audit_n_received": len(msg.get_all("Received", [])),
         "audit_has_list_id": int(msg["List-Id"] is not None),
     }
+def parse_bytes(raw, rid, source, label, errors):
+    """Try the modern parser first; fall back to the lenient legacy one for malformed headers."""
+    err = None
+    for pol in (policy.default, policy.compat32):
+        try:
+            return to_row(email.message_from_bytes(raw, policy=pol), rid, source, label)
+        except Exception as e:
+            err = e
+    errors.append(f"{rid}\t{err!r}")
+    return None
 
 def load_eml_dir(path, source, label, errors):
     rows = []
     for p in sorted(pathlib.Path(path).rglob("*.eml")):
-        try:
-            with open(p, "rb") as f:
-                msg = email.message_from_binary_file(f, policy=policy.default)
-            rows.append(to_row(msg, f"{source}:{p.name}", source, label))
-        except Exception as e:
-            errors.append(f"{source}:{p.name}\t{e!r}")
+        row = parse_bytes(p.read_bytes(), f"{source}:{p.name}", source, label, errors)
+        if row:
+            rows.append(row)
     return rows
 
 def load_mbox(path, source, label, errors):
     rows = []
-    box = mailbox.mbox(path, factory=lambda f: email.message_from_binary_file(f, policy=policy.default))
-    for i, msg in enumerate(box):
-        try:
-            rows.append(to_row(msg, f"{source}:{i}", source, label))
-        except Exception as e:
-            errors.append(f"{source}:{i}\t{e!r}")
+    box = mailbox.mbox(path)
+    for key in box.keys():
+        row = parse_bytes(box.get_bytes(key), f"{source}:{key}", source, label, errors)
+        if row:
+            rows.append(row)
     return rows
 
 def main():

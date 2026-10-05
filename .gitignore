@@ -3,3 +3,6 @@ data/
 __pycache__/
 *.eml
 *.mbox
+
+*.egg-info/
+.pytest_cache/
