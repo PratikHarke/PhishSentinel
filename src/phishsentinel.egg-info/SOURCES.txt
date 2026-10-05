@@ -1,0 +1,6 @@
+pyproject.toml
+src/phishsentinel/__init__.py
+src/phishsentinel.egg-info/PKG-INFO
+src/phishsentinel.egg-info/SOURCES.txt
+src/phishsentinel.egg-info/dependency_links.txt
+src/phishsentinel.egg-info/top_level.txt
